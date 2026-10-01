@@ -1,0 +1,69 @@
+# evo — Plan
+
+## Vision
+Creatures start from the same simple form and co-evolve body and movement under different environments/tasks. Distinct "species" emerge (quadruped, snake-like, biped…) — designed by environment and physics, not by hand.
+Long term (Phase 4–5): species share one world (ecosystem); intervention experiments (remove a species, change climate, add a threat).
+
+Principles: no LLMs (PPO + evolutionary algorithms) · no hand-scripted behavior or bodies · learning must be visible (before/after, generations) · training sim and rendering are separate (record, then replay in browser) · every phase is completable and showable on its own.
+Out of scope for now: flight (land first; swimming optional after Phase 3); photorealism (capsule/box primitives, aesthetics from presentation).
+
+## Building blocks
+| Need | Existing | Ours |
+|---|---|---|
+| Physics | MuJoCo + MJX (GPU/JAX) | — |
+| RL (PPO) | MuJoCo Playground / Brax PPO | rewards, observations |
+| Evolution | evosax or a simple GA | outer loop, mutation ops |
+| Body repr. | reference: DERL / UNIMAL | genome → MJCF compiler |
+| Environments | MuJoCo heightfields | procedural terrain generator |
+| Viz | Three.js | recording format + web player |
+
+References (direction and pitfalls, not to copy): DERL (Gupta et al., Nature Comms 2021) · DARLEI (2023, single-GPU DERL) · Karl Sims, Evolving Virtual Creatures (1994).
+
+## Architecture decisions
+1. **Graph genome (from Phase 2).** Node = body part (shape, size); edge = joint (type, axis, range, recursion/symmetry). Parametric-only genomes yield variations of one species; real diversity needs graphs. Phase 1 uses a stock model.
+2. **Parametric procedural environments.** Env = (terrain type, difficulty, friction, slope, obstacle density, task). Same generator later produces regions of one world (Phase 4).
+3. **Phase-independent recording format.** Body geometry (part list) + per-frame pos/rot per part + metadata (genome id, generation, env, fitness, parent id). Viewer knows only this format.
+4. **Lineage tracked from day one.** Parent id stored for every individual (lineage tree, Phase 4).
+
+Known risk: MJX is fast for many copies of one model; different bodies mean recompilation. Plan: parallel envs per body, bodies processed sequentially or in small groups. Measure compile time in Phase 3; if bottleneck: smaller population, shorter training, group similar topologies.
+
+## Phases (no phase transition without meeting the exit criterion)
+
+### Phase 1 — One body learns to walk
+Stock quadruped (Playground) on flat ground, PPO. Save policy snapshots (start/mid/end).
+Exit: trained mean forward velocity ≥ 5× random policy. Output: side-by-side start/mid/end video.
+
+| # | Step | Verify |
+|---|---|---|
+| 1.1 | Env setup (WSL2 if needed), deps | `jax.devices()` shows GPU |
+| 1.2 | Train a stock Playground locomotion env with defaults | final mean reward, one line |
+| 1.3 | Save 3 snapshots (start/mid/end) | 3 checkpoint files exist |
+| 1.4 | Fixed-seed rollouts, mean forward velocity per snapshot | 3 numbers; end ≥ 5× start |
+| 1.5 | Render 3 videos, combine side by side | one video file |
+| 1.6 | Define recording format v1, export final policy trajectory | file + part count |
+
+### Phase 2 — Genome + web player
+Graph genome + compiler. 3–4 hand-written genomes (quadruped, hexapod, snake, biped), each trained. Recording format + Three.js player (ground, shadows, soft light, follow cam, generation/fitness label).
+Exit: all 4 compile, are stable, train, and play in browser. Output: shareable link.
+
+### Phase 3 — Evolution in niches (main result)
+Outer loop: population → mutate → short PPO each → fitness → select. Same starting form, different envs: flat, stairs, rough, slope (+ optional tasks: carry, push).
+Exit: best individuals of ≥2 envs topologically distinct (leg count / structure). Output: species gallery, generational change, lineage tree.
+
+### Phase 4 — Shared world (vision)
+Species in one world, regions = envs; energy, food, reproduction. Likely lower-fidelity physics mode. Not detailed before Phase 3 is done.
+
+### Phase 5 — Intervention experiments (vision)
+Remove a species / change climate / add a threat → observe ecosystem response.
+
+## Setup
+Python 3.11+, `mujoco`, `mujoco-mjx`, `playground`, `jax[cuda12]`, `brax`; `evosax` in Phase 3. Viewer: Node + Vite + Three.js (separate folder, static build).
+
+## Risks
+| Risk | Mitigation |
+|---|---|
+| Envs converge to similar bodies | pick very different envs (stairs vs flat) |
+| Physics exploits (vibration sliding etc.) | torque limits, energy penalty, timestep checks |
+| Per-body compile time | start population ≈16–32, measure |
+| 8 GB VRAM | tune parallel env count |
+| Scope creep (Phase 4–5 early) | exit criteria gate every phase |

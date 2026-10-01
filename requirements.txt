@@ -1,0 +1,6 @@
+# Phase 1 deps — pinned to versions verified to install + import together (Python 3.11).
+jax[cuda12]==0.10.2
+mujoco==3.14.0
+mujoco-mjx==3.14.0
+brax==0.14.2
+playground==0.2.0
