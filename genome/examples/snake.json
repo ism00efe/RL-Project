@@ -6,8 +6,8 @@
  },
  "edges": [
   {"parent": "head", "child": "seg", "pos": [-1, 0, 0], "dir": [-1, 0, 0],
-   "joint": {"axes": [[0, 0, 1], [0, 1, 0]], "range": [-40, 40], "strength": 5}},
+   "joint": {"axes": [[0, 0, 1], [0, 1, 0]], "range": [-40, 40]}},
   {"parent": "seg", "child": "seg", "pos": [1, 0, 0], "dir": [1, 0, 0],
-   "joint": {"axes": [[0, 0, 1], [0, 1, 0]], "range": [-40, 40], "strength": 5}}
+   "joint": {"axes": [[0, 0, 1], [0, 1, 0]], "range": [-40, 40]}}
  ]
 }

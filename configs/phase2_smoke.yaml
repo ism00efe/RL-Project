@@ -1,3 +1,4 @@
+# Pinned to commit 619fcb2 (genome strength was gear in N·m; muscle model since 2b.2).
 # Pipeline smoke test only (tiny budget). Not a real experiment.
 genomes: [genome/examples/snake.json]
 run_root: runs/phase2_smoke

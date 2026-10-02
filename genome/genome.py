@@ -4,7 +4,7 @@ import json
 SHAPES = {"box": 3, "capsule": 2, "sphere": 1}
 NODE_DEFAULTS = {"recursion": 1, "density": 1000.0}
 EDGE_DEFAULTS = {"mirror": []}
-JOINT_DEFAULTS = {"axes": [], "range": [-45.0, 45.0], "strength": 10.0}
+JOINT_DEFAULTS = {"axes": [], "range": [-45.0, 45.0], "strength": 1.0}
 MAX_PARTS = 32
 
 

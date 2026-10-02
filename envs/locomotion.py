@@ -2,6 +2,8 @@
 
 obs: qpos[2:] (root height, root quat, joint angles) + qvel (root lin/ang vel, joint vels)
 reward: forward_weight * root world-x velocity - ctrl_cost_weight * mean(action^2)
+        - energy_cost_weight * mechanical power / (mass * g)
+motors: max torque from the muscle model (builder.compile.max_torque), force-velocity limited (max_joint_speed)
 done: non-finite state; optionally (upright_termination) when the root's local z axis points down.
 """
 import jax
@@ -26,10 +28,16 @@ def default_config():
         action_repeat=1,
         forward_weight=1.0,
         ctrl_cost_weight=0.05,
+        energy_cost_weight=0.0,  # x mechanical power / (m*g): reward = vx * (1 - w*CoT_mech)
+        max_joint_speed=15.0,    # rad/s, force-velocity limit (None = off)
         upright_termination=False,  # end episode when root body is upside down (anti-flipping)
         reset_noise=0.05,       # uniform noise on joint angles (rad) and velocities at reset
         max_envs=8192,          # sizes the MJX-Warp contact buffer (shared across all envs)
         impl="warp",
+        # Sim fidelity overrides (None = compiler default: 4 iterations, 8 ls_iterations, solref timeconst 0.02 s).
+        solver_iterations=None,
+        ls_iterations=None,
+        contact_timeconst=None,  # geom solref[0] for all geoms (s); smaller = stiffer, needs >= 2*sim_dt
     )
 
 
@@ -39,6 +47,12 @@ class Locomotion(mjx_env.MjxEnv):
         self._genome = load(genome) if isinstance(genome, str) else genome
         self._xml, self._mj_model = compile_genome(self._genome)
         self._mj_model.opt.timestep = self._config.sim_dt
+        if self._config.solver_iterations is not None:
+            self._mj_model.opt.iterations = self._config.solver_iterations
+        if self._config.ls_iterations is not None:
+            self._mj_model.opt.ls_iterations = self._config.ls_iterations
+        if self._config.contact_timeconst is not None:
+            self._mj_model.geom_solref[:, 0] = self._config.contact_timeconst
         mx = mjx.put_model(self._mj_model, impl=self._config.impl)
         if hasattr(mx.opt._impl, "warn_overflow"):  # see train/envs.py
             mx = mx.replace(opt=mx.opt.replace(_impl=mx.opt._impl.replace(warn_overflow=0)))
@@ -49,6 +63,9 @@ class Locomotion(mjx_env.MjxEnv):
         self._njmax = 2 * (m.njnt - 1) + 4 * ncon
         self._joint_qpos = jp.arange(7, m.nq)
         self._joint_qvel = jp.arange(6, m.nv)
+        self._act_dof = jp.array(m.jnt_dofadr[m.actuator_trnid[:, 0]])
+        self._gear = jp.array(m.actuator_gear[:, 0])
+        self._mass = float(m.body_subtreemass[1])
 
     def reset(self, rng):
         rng, k1, k2 = jax.random.split(rng, 3)
@@ -59,21 +76,39 @@ class Locomotion(mjx_env.MjxEnv):
         data = mjx_env.make_data(self._mj_model, qpos=qpos, qvel=qvel, impl=self._mjx_model.impl.value,
                                  naconmax=self._naconmax, njmax=self._njmax)
         data = mjx.forward(self._mjx_model, data)
-        metrics = {"forward_vel": jp.zeros(()), "ctrl_cost": jp.zeros(())}
+        metrics = {"forward_vel": jp.zeros(()), "ctrl_cost": jp.zeros(()), "power": jp.zeros(())}
         return mjx_env.State(data, self._obs(data), jp.zeros(()), jp.zeros(()), metrics, {"rng": rng})
 
+    def _substeps(self, data, action):
+        """n_substeps of physics. Force-velocity limit: a motor's torque in its direction of motion
+        falls linearly to 0 at max_joint_speed (no limit when resisting motion). Returns
+        (data, mean mechanical power sum|tau*omega| in W over the control step)."""
+        wmax = self._config.max_joint_speed
+
+        def sub(carry, _):
+            data, work = carry
+            w = data.qvel[self._act_dof]
+            ctrl = action if wmax is None else action * jp.clip(1.0 - jp.sign(action) * w / wmax, 0.0, 1.0)
+            work = work + jp.sum(jp.abs(self._gear * ctrl * w))
+            return (mjx.step(self._mjx_model, data.replace(ctrl=ctrl)), work), None
+
+        (data, work), _ = jax.lax.scan(sub, (data, jp.zeros(())), (), self.n_substeps)
+        return data, work / self.n_substeps
+
     def step(self, state, action):
-        data = mjx_env.step(self._mjx_model, state.data, action, self.n_substeps)
+        data, power = self._substeps(state.data, action)
         vx = data.qvel[0]
         ctrl_cost = jp.mean(jp.square(action))
-        reward = self._config.forward_weight * vx - self._config.ctrl_cost_weight * ctrl_cost
+        energy_cost = power / (self._mass * 9.81)  # W / N = m/s, same unit as vx
+        reward = (self._config.forward_weight * vx - self._config.ctrl_cost_weight * ctrl_cost
+                  - self._config.energy_cost_weight * energy_cost)
         ok = jp.all(jp.isfinite(data.qpos)) & jp.all(jp.isfinite(data.qvel))
         done = ~ok
         if self._config.upright_termination:
             done = done | (self.upright(data) < 0.0)
         done = done.astype(jp.float32)
         reward = jp.where(ok, reward, 0.0)
-        state.metrics.update(forward_vel=jp.where(ok, vx, 0.0), ctrl_cost=ctrl_cost)
+        state.metrics.update(forward_vel=jp.where(ok, vx, 0.0), ctrl_cost=ctrl_cost, power=jp.where(ok, power, 0.0))
         return state.replace(data=data, obs=self._obs(data), reward=reward, done=done)
 
     def _obs(self, data):

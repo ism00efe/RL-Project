@@ -1,4 +1,4 @@
-"""Genome v1 -> MJCF (docs/GENOME.md). Usage: python -m builder.compile genome/examples/*.json"""
+"""Genome v1 -> MJCF (docs/GENOME.md). Usage: python -m builder.compile [--torques] genome/examples/*.json"""
 import itertools
 import sys
 
@@ -9,6 +9,23 @@ from genome.genome import MAX_PARTS, load
 
 SPAWN_CLEARANCE = 0.02  # m between lowest geom and floor at reset
 ROOT_RGBA, PART_RGBA = "0.85 0.45 0.2 1", "0.35 0.5 0.7 1"
+MUSCLE_STRESS = 3e5  # Pa, vertebrate muscle max isometric stress (~30 N/cm²)
+
+
+def cross_section(node):
+    """Area (m²) of a node's shape perpendicular to its long axis (local x)."""
+    s = node["size"]
+    if node["shape"] == "box":
+        return 4.0 * s[1] * s[2]
+    return np.pi * s[0] ** 2
+
+
+def max_torque(node, strength):
+    """Muscle model: force = stress * A (whole cross-section is muscle), moment arm = half the
+    equivalent radius sqrt(A/pi). Torque ~ A^1.5 ~ L^3 (square-cube law vs weight*lever ~ L^4).
+    `strength` is the genome's dimensionless multiplier."""
+    a = cross_section(node)
+    return strength * MUSCLE_STRESS * a * 0.5 * np.sqrt(a / np.pi)
 
 HEADER = """<mujoco model="{id}">
   <compiler angle="degree"/>
@@ -109,7 +126,7 @@ def to_mjcf(g, root_z=0.0):
                 name = f'{p["name"]}_j{k}'
                 lo, hi = p["joint"]["range"]
                 lines.append(f'{ind}  <joint name="{name}" type="hinge" axis="{fmt(axis)}" range="{lo:g} {hi:g}"/>')
-                joints.append((name, p["joint"]["strength"]))
+                joints.append((name, max_torque(g["nodes"][p["node"]], p["joint"]["strength"])))
         lines.append(f'{ind}  ' + geom_xml(g["nodes"][p["node"]], i == 0, ROOT_RGBA if i == 0 else PART_RGBA))
         for c in children[i]:
             lines += body(c, depth + 1)
@@ -117,7 +134,7 @@ def to_mjcf(g, root_z=0.0):
         return lines
 
     bodies = body(0, 0)
-    acts = [f'    <motor name="{n}" joint="{n}" gear="{s:g}"/>' for n, s in joints]
+    acts = [f'    <motor name="{n}" joint="{n}" gear="{s:.4g}"/>' for n, s in joints]
     return (HEADER.format(id=g["id"]) + "\n".join(bodies) + "\n  </worldbody>\n  <actuator>\n"
             + "\n".join(acts) + "\n  </actuator>\n</mujoco>\n")
 
@@ -143,11 +160,18 @@ def compile_genome(g):
     return xml, mujoco.MjModel.from_xml_string(xml)
 
 
-def main(paths):
-    for path in paths:
+def main(args):
+    flags = [a for a in args if a.startswith("--")]
+    for path in (a for a in args if not a.startswith("--")):
         g = load(path)
         _, m = compile_genome(g)
         print(f"{g['id']} parts {m.nbody - 1} joints {m.njnt - 1} actuators {m.nu} mass {m.body_subtreemass[1]:.1f}kg")
+        if "--torques" in flags:
+            torques = {}
+            for i in range(m.nu):
+                part = m.body(m.jnt_bodyid[m.actuator_trnid[i, 0]]).name.rstrip("0123456789")
+                torques.setdefault(part, round(float(m.actuator_gear[i, 0]), 1))
+            print(f"  max torque N·m per part type: {torques}")
 
 
 if __name__ == "__main__":

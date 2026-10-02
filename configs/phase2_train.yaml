@@ -1,3 +1,4 @@
+# Pinned to commit 619fcb2 (genome strength was gear in N·m; muscle model since 2b.2).
 # Step 2.5: train each hand-written genome on flat ground, identical PPO settings (Go1 Playground values, 100M budget).
 genomes: [genome/examples/quadruped.json, genome/examples/hexapod.json, genome/examples/snake.json, genome/examples/biped.json]
 run_root: runs/phase2

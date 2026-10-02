@@ -1,9 +1,9 @@
-# Pinned to commit 619fcb2 (genome strength was gear in N·m; muscle model since 2b.2).
-# Step 2.5 variant (quadruped/hexapod learned to run upside down): train each hand-written genome on flat ground, identical PPO settings (Go1 Playground values, 100M budget).
+# Step 2b.4: retrain the 4 example genomes with the muscle model (2b.2: cross-section torque, force-velocity limit,
+# default max_joint_speed 15 rad/s) + energy cost (2b.3), strict sim (2b.1 showed it matters), no upright termination.
 genomes: [genome/examples/quadruped.json, genome/examples/hexapod.json, genome/examples/snake.json, genome/examples/biped.json]
-run_root: runs/phase2_upright
+run_root: runs/phase2b
 seed: 0
-env_overrides: {upright_termination: true}   # only change vs phase2_train.yaml: episode ends when root is upside down
+env_overrides: {energy_cost_weight: 1.0, sim_dt: 0.001, solver_iterations: 20, ls_iterations: 20, contact_timeconst: 0.005}
 ppo:
   num_timesteps: 100000000
   num_evals: 6

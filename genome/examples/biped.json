@@ -8,10 +8,10 @@
  },
  "edges": [
   {"parent": "torso", "child": "thigh", "pos": [0, 0.6, -1], "dir": [0, 0, -1], "mirror": ["y"],
-   "joint": {"axes": [[0, 1, 0], [0, 0, 1]], "range": [-60, 60], "strength": 40}},
+   "joint": {"axes": [[0, 1, 0], [0, 0, 1]], "range": [-60, 60]}},
   {"parent": "thigh", "child": "shin", "pos": [1, 0, 0], "dir": [1, 0, 0],
-   "joint": {"axes": [[0, 1, 0]], "range": [-80, 10], "strength": 30}},
+   "joint": {"axes": [[0, 1, 0]], "range": [-80, 10]}},
   {"parent": "shin", "child": "foot", "pos": [1, 0, 0], "dir": [0, 0, 1],
-   "joint": {"axes": [[0, 1, 0]], "range": [-40, 40], "strength": 15}}
+   "joint": {"axes": [[0, 1, 0]], "range": [-40, 40]}}
  ]
 }

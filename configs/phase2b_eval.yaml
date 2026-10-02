@@ -1,10 +1,10 @@
-# Pinned to commit 619fcb2 (genome strength was gear in N·m; muscle model since 2b.2).
-# Eval for phase2_train_upright.yaml (rollouts use the default env, i.e. no termination).
+# Step 2b.4 eval: snapshots, rollouts (mean_vx, upright_frac, CoT, Fr), videos, recordings in the training sim.
 genomes: [genome/examples/quadruped.json, genome/examples/hexapod.json, genome/examples/snake.json, genome/examples/biped.json]
-run_root: runs/phase2_upright
+run_root: runs/phase2b
 env_name: flat
 seed: 1
 num_envs: 128
 num_steps: 1000
+env_overrides: {energy_cost_weight: 1.0, sim_dt: 0.001, solver_iterations: 20, ls_iterations: 20, contact_timeconst: 0.005}
 render: {steps: 500, width: 480, height: 360, camera: track}
 record: {snapshot: end, steps: 500}

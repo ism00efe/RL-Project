@@ -1,0 +1,13 @@
+# Step 2b.4 exit check: phase2b end snapshots under default vs strict (training) vs ultra sim; slip on first 16 envs.
+genomes: [genome/examples/quadruped.json, genome/examples/hexapod.json, genome/examples/snake.json, genome/examples/biped.json]
+run_root: runs/phase2b
+run_roots: [runs/phase2b]
+snapshot: end
+seed: 1
+num_envs: 128
+num_steps: 1000
+slip_envs: 16
+sims:
+  default: {}
+  strict: {sim_dt: 0.001, solver_iterations: 20, ls_iterations: 20, contact_timeconst: 0.005}
+  ultra: {sim_dt: 0.0005, solver_iterations: 40, ls_iterations: 40, contact_timeconst: 0.002}

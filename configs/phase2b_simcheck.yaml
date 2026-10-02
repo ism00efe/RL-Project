@@ -1,0 +1,12 @@
+# Step 2b.1 (Phase 2 runs; their genomes used strength = gear N·m, so re-run only at commit 619fcb2): end snapshots of both Phase 2 runs under default vs strict sim; mean_vx (128 envs) + contact slip (first 16 envs, CPU).
+genomes: [genome/examples/quadruped.json, genome/examples/hexapod.json, genome/examples/snake.json, genome/examples/biped.json]
+run_root: runs/phase2          # required by load_configs; run_dir is set per entry of run_roots
+run_roots: [runs/phase2, runs/phase2_upright]
+snapshot: end
+seed: 1
+num_envs: 128
+num_steps: 1000
+slip_envs: 16
+sims:
+  default: {}
+  strict: {sim_dt: 0.001, solver_iterations: 20, ls_iterations: 20, contact_timeconst: 0.005}

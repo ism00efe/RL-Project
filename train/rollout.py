@@ -18,6 +18,7 @@ from train.snapshots import snapshot_paths
 
 HOLD = 10**9  # steps_until_next_cmd: never resample the command
 RENDER_FIELDS = ("qpos", "qvel", "mocap_pos", "mocap_quat", "xfrc_applied")
+METRIC_FIELDS = ("power",)  # env metrics also kept with poses, when the env defines them
 
 
 def fix_command(state, command):
@@ -44,7 +45,10 @@ def make_rollout(env, act_fn, num_envs, num_steps, command, keep_poses=False):
         key, k = jax.random.split(key)
         state = fix_command(step(state, act_fn(state.obs, k)), command)
         alive = alive * (1.0 - state.done)
-        pose = {f: getattr(state.data, f) for f in RENDER_FIELDS} if keep_poses else None
+        pose = None
+        if keep_poses:
+            pose = {f: getattr(state.data, f) for f in RENDER_FIELDS}
+            pose.update({k: state.metrics[k] * alive for k in METRIC_FIELDS if k in state.metrics})
         out = (vx(state.data) * alive, pose)
         return (state, alive, key), out
 
@@ -89,6 +93,18 @@ def random_act_fn(action_size):
         key, (jax.tree.leaves(obs)[0].shape[0], action_size), minval=-1.0, maxval=1.0)
 
 
+def body_stats(env, mean_vx, poses):
+    """Genome-body metrics from a rollout: upright fraction; cost of transport CoT = mechanical
+    energy / (mass * distance) in J/(kg*m); Froude number Fr = v^2 / (g * L), L = root spawn height."""
+    q = poses["qpos"]
+    out = {"upright_frac": float(((1 - 2 * (q[..., 4] ** 2 + q[..., 5] ** 2)) > 0).mean())}
+    if "power" in poses:
+        mass = float(env.mj_model.body_subtreemass[1])
+        out["CoT"] = float(poses["power"].mean()) / (mass * max(float(mean_vx), 1e-6))
+    out["Fr"] = float(mean_vx) ** 2 / (9.81 * float(env.mj_model.qpos0[2]))
+    return out
+
+
 def evaluate(cfg):
     env = make_env(cfg)
     acts = {"random": random_act_fn(env.action_size)}
@@ -100,9 +116,8 @@ def evaluate(cfg):
         vx, poses = run(cfg["seed"])
         res[name] = float(vx)
         extra = ""
-        if upright:  # fraction of steps with the root upright (genome bodies)
-            q = poses["qpos"]
-            extra = f" upright_frac {float(((1 - 2 * (q[..., 4] ** 2 + q[..., 5] ** 2)) > 0).mean()):.2f}"
+        if upright:  # genome bodies
+            extra = " " + " ".join(f"{k} {v:.2f}" for k, v in body_stats(env, vx, poses).items())
         print(f"{cfg['env']} {name} mean_vx {res[name]:.3f}{extra}", flush=True)
     return res
 
