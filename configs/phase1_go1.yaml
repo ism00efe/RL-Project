@@ -1,0 +1,5 @@
+# Step 1.2: stock Playground locomotion env, Playground default PPO hyperparameters.
+env: Go1JoystickFlatTerrain
+seed: 0
+run_dir: runs/phase1_go1
+ppo_overrides: {}   # empty = Playground defaults (rule 6: change only with approval)

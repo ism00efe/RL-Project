@@ -1,6 +1,10 @@
-# Phase 1 deps — pinned to versions verified to install + import together (Python 3.11).
-jax[cuda12]==0.10.2
+# Phase 1 deps — pinned to versions verified to install, pass `pip check`, and run the PPO smoke test together (Python 3.11).
+# jax 0.10.x breaks brax 0.14.2 (jax.device_put_replicated removed) → stay on 0.9.2.
+jax[cuda12]==0.9.2
+jaxlib==0.9.2
+flax==0.12.6
 mujoco==3.14.0
 mujoco-mjx==3.14.0
 brax==0.14.2
 playground==0.2.0
+pyyaml==6.0.3

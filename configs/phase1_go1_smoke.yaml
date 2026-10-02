@@ -1,0 +1,11 @@
+# Pipeline smoke test only (CPU-sized). Not a real experiment.
+env: Go1JoystickFlatTerrain
+seed: 0
+run_dir: runs/phase1_go1_smoke
+ppo_overrides:
+  num_timesteps: 20000
+  num_envs: 32
+  batch_size: 32
+  num_minibatches: 4
+  num_evals: 2
+  episode_length: 100

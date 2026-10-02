@@ -21,6 +21,6 @@ RTX 4060 8 GB, 32 GB RAM. JAX GPU needs Linux → WSL2 if on Windows. Check: `py
 
 ## Status
 - Phase: 1
-- Step: 1.1 (deps pinned in `requirements.txt`, `scripts/setup_env.sh`; GPU check pending on target machine)
-- Last measurement: cloud container (no GPU): deps import OK, `jax.devices()` = `[CpuDevice(id=0)]`
-- Notes: —
+- Step: 1.1 (deps pinned in `requirements.txt`, `scripts/setup_env.sh`; GPU check pending on user's 4060) → 1.2 ready to run
+- Last measurement: cloud CPU smoke test `configs/phase1_go1_smoke.yaml`: pipeline OK, checkpoint written (170 s); CPU sim ≈ 900 env-steps/s
+- Notes: Training runs on the user's RTX 4060 (decided 2026-10-02); this cloud container has no GPU. 1.2 run: `python -m train.train_ppo configs/phase1_go1.yaml` (Playground defaults, 200M steps, 8192 envs; checkpoints at each of 10 evals → `runs/phase1_go1/ckpt`, likely covers 1.3). If 8192 envs OOM on 8 GB: report, don't lower silently.
