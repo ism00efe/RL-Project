@@ -66,6 +66,23 @@ Base run: quadruped/hexapod run upside down (upright 2% of steps). Variant fixes
 (biped skates on one sliding foot). Cause: strong motors vs. negligible energy cost, plus soft-contact foot slip. Open decision before Phase 3:
 reward/energy terms, motor strength, contact settings. Player: https://claude.ai/artifact/Y4zQUNqsThGYzY7zaYMcrz (private until shared).
 
+### Phase 2b — Physics credibility (approved by user 2026-10-02 as one block: run all steps without per-step approval)
+Goal: tell real strategies from simulator exploits, and make strength cost something, before evolution can exploit it.
+Principles agreed with the user: odd-looking but physically valid gaits (tumbling, crawling, hopping) are legitimate results, not failures;
+simulator artifacts (feet sliding while in contact, contact penetration) are not. Energy cost is the per-step precursor of the Phase 4
+energy budget (same quantity: muscle mechanical work), so adding it now is in-plan. Damage/health is deferred to Phase 4 (not a reward term now).
+Exit: for each of the 4 bodies, contact slip p50 < 0.3 m/s and end mean_vx changes < 20% between default and strict sim; Froude number
+Fr = v²/(g·leg_length) reported (animals run at Fr ≲ 3; above that, investigate).
+
+| # | Step | Verify |
+|---|---|---|
+| 2b.1 | Sim validity test: re-evaluate existing end snapshots (`runs/phase2`, `runs/phase2_upright`) under a strict sim (smaller timestep, more solver iterations, stiffer contacts) vs default; measure contact slip | table: body × {default, strict} mean_vx + slip p50 |
+| 2b.2 | Muscle model: motor strength derived from the child part's cross-section (genome `strength` → dimensionless multiplier) and a force–velocity limit (torque falls linearly to 0 at max joint speed) | 4 bodies: per-joint max torque listed; zero-action check still 0 NaN |
+| 2b.3 | Energy cost: penalty ∝ Σ\|τ·ω\| (mechanical power), weight in config; log cost of transport (J/(kg·m)) | CoT per body printed by eval |
+| 2b.4 | Retrain 4 bodies with 2b.2+2b.3 (+ strict sim settings if 2b.1 shows they matter), upright termination OFF (flipping allowed if it is physically valid); eval, videos, recordings, update player | per body: mean_vx, upright_frac, slip p50, CoT, Fr; player link updated |
+
+Idea for later (not in 2b): anisotropic friction as a genome trait ("scales") — real snakes rely on it; our ground has isotropic friction.
+
 ### Phase 3 — Evolution in niches (main result)
 Outer loop: population → mutate → short PPO each → fitness → select. Same starting form, different envs: flat, stairs, rough, slope (+ optional tasks: carry, push).
 Exit: best individuals of ≥2 envs topologically distinct (leg count / structure). Output: species gallery, generational change, lineage tree.
