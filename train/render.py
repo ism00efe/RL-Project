@@ -7,9 +7,8 @@ from types import SimpleNamespace
 
 import jax
 import numpy as np
-import yaml
 
-from train.envs import load_env
+from train.envs import load_configs, make_env
 from train.rollout import make_rollout, policy_act_fn
 from train.snapshots import NAMES, snapshot_paths
 
@@ -21,17 +20,15 @@ def write_mp4(path, frames, fps):
     subprocess.run(cmd, input=np.stack(frames).astype(np.uint8).tobytes(), check=True)
 
 
-def main(cfg_path):
-    with open(cfg_path) as f:
-        cfg = yaml.safe_load(f)
+def render(cfg):
     r = cfg["render"]
-    env = load_env(cfg["env"])
+    env = make_env(cfg)
     fps = round(1.0 / env.dt)
     out_dir = os.path.join(cfg["run_dir"], "videos")
     os.makedirs(out_dir, exist_ok=True)
     paths = []
     for name, ckpt in snapshot_paths(cfg["run_dir"]).items():
-        run = make_rollout(env, policy_act_fn(ckpt), 1, r["steps"], cfg["command"], keep_poses=True)
+        run = make_rollout(env, policy_act_fn(ckpt), 1, r["steps"], cfg.get("command"), keep_poses=True)
         poses = jax.device_get(run(cfg["seed"])[1])
         traj = [SimpleNamespace(data=SimpleNamespace(**{k: v[t, 0] for k, v in poses.items()}))
                 for t in range(r["steps"])]
@@ -42,7 +39,12 @@ def main(cfg_path):
     inputs = sum((["-i", p] for p in paths), [])
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *inputs,
                     "-filter_complex", f"hstack=inputs={len(NAMES)}", out], check=True)
-    print(out)
+    print(out, flush=True)
+
+
+def main(cfg_path):
+    for cfg in load_configs(cfg_path):
+        render(cfg)
 
 
 if __name__ == "__main__":

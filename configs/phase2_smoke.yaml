@@ -1,0 +1,9 @@
+# Pipeline smoke test only (tiny budget). Not a real experiment.
+genomes: [genome/examples/snake.json]
+run_root: runs/phase2_smoke
+seed: 0
+env_overrides: {max_envs: 64}
+ppo: {num_timesteps: 60000, num_evals: 3, episode_length: 100, action_repeat: 1, num_envs: 64, batch_size: 64,
+      num_minibatches: 4, num_updates_per_batch: 2, unroll_length: 10, learning_rate: 0.0003, entropy_cost: 0.01,
+      discounting: 0.97, reward_scaling: 1.0, max_grad_norm: 1.0, normalize_observations: true, num_resets_per_eval: 1,
+      network_factory: {policy_hidden_layer_sizes: [32, 32], value_hidden_layer_sizes: [32, 32]}}

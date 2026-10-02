@@ -1,4 +1,4 @@
-"""Train a stock Playground env with Brax PPO. Usage: python -m train.train_ppo configs/phase1_go1.yaml"""
+"""Train a Playground env or genome body(ies) with Brax PPO. Usage: python -m train.train_ppo configs/<run>.yaml"""
 import functools
 import os
 import sys
@@ -6,7 +6,6 @@ import time
 
 import jax
 import jax.numpy as jnp
-import yaml
 from brax.training.acme import specs
 from brax.training.agents.ppo import checkpoint
 from brax.training.agents.ppo import networks as ppo_networks
@@ -14,7 +13,7 @@ from brax.training.agents.ppo import train as ppo
 from mujoco_playground import registry, wrapper
 from mujoco_playground.config import locomotion_params
 
-from train.envs import load_env
+from train.envs import load_configs, make_env
 
 
 def save_initial_checkpoint(ckpt_dir, env, train_kwargs):
@@ -32,21 +31,26 @@ def save_initial_checkpoint(ckpt_dir, env, train_kwargs):
     checkpoint.save(ckpt_dir, 0, params, cfg)
 
 
-def main(cfg_path):
-    with open(cfg_path) as f:
-        cfg = yaml.safe_load(f)
+def ppo_params(cfg):
+    """Explicit `ppo` block (genome runs), else Playground's tuned config + `ppo_overrides`."""
+    if "ppo" in cfg:
+        return {**cfg["ppo"], "network_factory": dict(cfg["ppo"]["network_factory"])}
+    params = locomotion_params.brax_ppo_config(cfg["env"])
+    for k, v in (cfg.get("ppo_overrides") or {}).items():
+        params[k] = v
+    return dict(params)
+
+
+def train(cfg):
     name = cfg["env"]
     run_dir = os.path.abspath(cfg["run_dir"])
     os.makedirs(run_dir, exist_ok=True)
 
-    env = load_env(name)
-    eval_env = load_env(name)
-    randomizer = registry.get_domain_randomizer(name)
+    env = make_env(cfg)
+    eval_env = make_env(cfg)
+    randomizer = None if "genome" in cfg else registry.get_domain_randomizer(name)
 
-    ppo_params = locomotion_params.brax_ppo_config(name)
-    for k, v in (cfg.get("ppo_overrides") or {}).items():
-        ppo_params[k] = v
-    train_params = dict(ppo_params)
+    train_params = ppo_params(cfg)
     net_cfg = train_params.pop("network_factory")
     network_factory = functools.partial(ppo_networks.make_ppo_networks, **net_cfg)
 
@@ -70,7 +74,12 @@ def main(cfg_path):
     ckpt_dir = os.path.join(run_dir, "ckpt")
     save_initial_checkpoint(ckpt_dir, env, train_kwargs)
     ppo.train(save_checkpoint_path=ckpt_dir, **train_kwargs)
-    print(f"FINAL {name} step {last['step']} mean_reward {last['reward']:.2f} time {time.time() - t0:.0f}s")
+    print(f"FINAL {name} step {last['step']} mean_reward {last['reward']:.2f} time {time.time() - t0:.0f}s", flush=True)
+
+
+def main(cfg_path):
+    for cfg in load_configs(cfg_path):
+        train(cfg)
 
 
 if __name__ == "__main__":

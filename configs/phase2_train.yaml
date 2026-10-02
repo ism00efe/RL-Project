@@ -1,0 +1,25 @@
+# Step 2.5: train each hand-written genome on flat ground, identical PPO settings (Go1 Playground values, 100M budget).
+genomes: [genome/examples/quadruped.json, genome/examples/hexapod.json, genome/examples/snake.json, genome/examples/biped.json]
+run_root: runs/phase2
+seed: 0
+env_overrides: {}          # envs/locomotion.py default_config (reward: forward 1.0, ctrl cost 0.05)
+ppo:
+  num_timesteps: 100000000
+  num_evals: 6
+  episode_length: 1000
+  action_repeat: 1
+  num_envs: 8192
+  batch_size: 256
+  num_minibatches: 32
+  num_updates_per_batch: 4
+  unroll_length: 20
+  learning_rate: 0.0003
+  entropy_cost: 0.01
+  discounting: 0.97
+  reward_scaling: 1.0
+  max_grad_norm: 1.0
+  normalize_observations: true
+  num_resets_per_eval: 10
+  network_factory:
+    policy_hidden_layer_sizes: [512, 256, 128]
+    value_hidden_layer_sizes: [512, 256, 128]

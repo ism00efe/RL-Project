@@ -1,0 +1,18 @@
+{
+ "id": "hexapod", "root": "torso",
+ "nodes": {
+  "torso": {"shape": "box", "size": [0.3, 0.08, 0.04]},
+  "thigh": {"shape": "capsule", "size": [0.03, 0.08]},
+  "shin": {"shape": "capsule", "size": [0.025, 0.1]}
+ },
+ "edges": [
+  {"parent": "torso", "child": "thigh", "pos": [0.8, 1, 0], "dir": [0, 0.5, -1], "mirror": ["y"],
+   "joint": {"axes": [[0, 1, 0], [0, 0, 1]], "range": [-40, 40], "strength": 20}},
+  {"parent": "torso", "child": "thigh", "pos": [0, 1, 0], "dir": [0, 0.5, -1], "mirror": ["y"],
+   "joint": {"axes": [[0, 1, 0], [0, 0, 1]], "range": [-40, 40], "strength": 20}},
+  {"parent": "torso", "child": "thigh", "pos": [-0.8, 1, 0], "dir": [0, 0.5, -1], "mirror": ["y"],
+   "joint": {"axes": [[0, 1, 0], [0, 0, 1]], "range": [-40, 40], "strength": 20}},
+  {"parent": "thigh", "child": "shin", "pos": [1, 0, 0], "dir": [1, 0, 0],
+   "joint": {"axes": [[0, 1, 0]], "range": [-60, 60], "strength": 15}}
+ ]
+}

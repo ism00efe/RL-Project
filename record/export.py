@@ -7,9 +7,8 @@ import sys
 import jax
 import mujoco
 import numpy as np
-import yaml
 
-from train.envs import load_env
+from train.envs import load_configs, make_env
 from train.rollout import make_rollout, policy_act_fn
 from train.snapshots import snapshot_paths
 
@@ -56,18 +55,24 @@ def part_frames(m, poses):
     return {"pos": pos, "quat": quat}
 
 
-def main(cfg_path):
-    with open(cfg_path) as f:
-        cfg = yaml.safe_load(f)
+def genome_meta(env, rec):
+    """Lineage fields from the genome for genome bodies, else from the config (stock models)."""
+    g = getattr(env, "genome", None)
+    if g is None:
+        return rec["meta"]
+    return {"genome_id": g["id"], "generation": g["generation"], "parent_id": g["parent_id"]}
+
+
+def export(cfg):
     rec = cfg["record"]
-    env = load_env(cfg["env"])
+    env = make_env(cfg)
     src = snapshot_paths(cfg["run_dir"])[rec["snapshot"]]
-    run = make_rollout(env, policy_act_fn(src), 1, rec["steps"], cfg["command"], keep_poses=True)
+    run = make_rollout(env, policy_act_fn(src), 1, rec["steps"], cfg.get("command"), keep_poses=True)
     fitness, poses = jax.device_get(run(cfg["seed"]))
     out = {
         "format": FORMAT,
         "version": VERSION,
-        "meta": {**rec["meta"], "env": cfg["env"], "fitness": round(float(fitness), 4),
+        "meta": {**genome_meta(env, rec), "env": cfg.get("env_name", cfg["env"]), "fitness": round(float(fitness), 4),
                  "fitness_name": "mean_vx", "seed": cfg["seed"],
                  "source": os.path.relpath(src, os.getcwd())},
         "dt": env.dt,
@@ -79,7 +84,12 @@ def main(cfg_path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(out, f, separators=(",", ":"))
-    print(f"{path} parts {len(out['parts'])}")
+    print(f"{path} parts {len(out['parts'])}", flush=True)
+
+
+def main(cfg_path):
+    for cfg in load_configs(cfg_path):
+        export(cfg)
 
 
 if __name__ == "__main__":

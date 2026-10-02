@@ -7,14 +7,13 @@ import sys
 
 import jax
 import jax.numpy as jp
-import yaml
 from brax.training import checkpoint as brax_checkpoint
 from brax.training import networks
 from brax.training.agents.ppo import checkpoint
 from brax.training.agents.ppo import networks as ppo_networks
 from ml_collections import config_dict
 
-from train.envs import load_env
+from train.envs import load_configs, make_env
 from train.snapshots import snapshot_paths
 
 HOLD = 10**9  # steps_until_next_cmd: never resample the command
@@ -22,6 +21,8 @@ RENDER_FIELDS = ("qpos", "qvel", "mocap_pos", "mocap_quat", "xfrc_applied")
 
 
 def fix_command(state, command):
+    if command is None:
+        return state
     info = dict(state.info)
     info["command"] = jp.broadcast_to(command, info["command"].shape)
     info["steps_until_next_cmd"] = jp.full_like(info["steps_until_next_cmd"], HOLD)
@@ -29,11 +30,14 @@ def fix_command(state, command):
 
 
 def make_rollout(env, act_fn, num_envs, num_steps, command, keep_poses=False):
-    """act_fn(obs, key) -> batched actions. Returns jitted fn(seed) -> (mean_vx, poses|None),
+    """command: fixed joystick command, or None for envs without one. Forward speed is
+    env.forward_vel(data) if defined, else body-frame x (Playground joystick envs).
+    act_fn(obs, key) -> batched actions. Returns jitted fn(seed) -> (mean_vx, poses|None),
     poses = {field: [num_steps, num_envs, ...]} for RENDER_FIELDS of state.data."""
-    command = jp.asarray(command, dtype=jp.float32)
+    command = None if command is None else jp.asarray(command, dtype=jp.float32)
     reset, step = jax.vmap(env.reset), jax.vmap(env.step)
-    vx = jax.vmap(lambda d: env.get_local_linvel(d)[0])
+    fwd = getattr(env, "forward_vel", None) or (lambda d: env.get_local_linvel(d)[0])
+    vx = jax.vmap(fwd)
 
     def body(carry, _):
         state, alive, key = carry
@@ -57,10 +61,14 @@ def make_rollout(env, act_fn, num_envs, num_steps, command, keep_poses=False):
 
 
 def load_policy(ckpt_path, deterministic=True):
-    """checkpoint.load_policy, except brax 0.14.2 saves None kernel-init fns
-    (e.g. mean_kernel_init_fn) but its load_config KeyErrors on them; pass None through."""
+    """checkpoint.load_policy, working around two brax 0.14.2 save/load mismatches:
+    None kernel-init fns (e.g. mean_kernel_init_fn) KeyError on load, and a single-array
+    observation spec is saved as a dict and then mistaken for dict observations."""
+    ckpt_path = os.path.abspath(ckpt_path)  # orbax requires absolute paths
     with open(os.path.join(ckpt_path, "ppo_network_config.json")) as f:
         raw = json.load(f)
+    if "shape" in raw["observation_size"]:  # single-array obs spec, saved as {"shape", "dtype"}
+        raw["observation_size"] = raw["observation_size"]["shape"][-1]
     kw = raw["network_factory_kwargs"]
     kw["activation"] = networks.ACTIVATION[kw["activation"]]
     for k in brax_checkpoint._KERNEL_INIT_FN_KEYWORDS:
@@ -81,18 +89,27 @@ def random_act_fn(action_size):
         key, (jax.tree.leaves(obs)[0].shape[0], action_size), minval=-1.0, maxval=1.0)
 
 
-def main(cfg_path):
-    with open(cfg_path) as f:
-        cfg = yaml.safe_load(f)
-    env = load_env(cfg["env"])
+def evaluate(cfg):
+    env = make_env(cfg)
     acts = {"random": random_act_fn(env.action_size)}
     acts.update({n: policy_act_fn(p) for n, p in snapshot_paths(cfg["run_dir"]).items()})
     res = {}
     for name, act in acts.items():
-        run = make_rollout(env, act, cfg["num_envs"], cfg["num_steps"], cfg["command"])
-        res[name] = float(run(cfg["seed"])[0])
-        print(f"{name} mean_vx {res[name]:.3f}", flush=True)
-    print(f"end/start {res['end'] / res['start']:.1f}  end/random {res['end'] / res['random']:.1f}")
+        upright = getattr(env, "upright", None)
+        run = make_rollout(env, act, cfg["num_envs"], cfg["num_steps"], cfg.get("command"), keep_poses=bool(upright))
+        vx, poses = run(cfg["seed"])
+        res[name] = float(vx)
+        extra = ""
+        if upright:  # fraction of steps with the root upright (genome bodies)
+            q = poses["qpos"]
+            extra = f" upright_frac {float(((1 - 2 * (q[..., 4] ** 2 + q[..., 5] ** 2)) > 0).mean()):.2f}"
+        print(f"{cfg['env']} {name} mean_vx {res[name]:.3f}{extra}", flush=True)
+    return res
+
+
+def main(cfg_path):
+    for cfg in load_configs(cfg_path):
+        evaluate(cfg)
 
 
 if __name__ == "__main__":

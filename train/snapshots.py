@@ -3,7 +3,7 @@ Usage: python -m train.snapshots configs/phase1_eval.yaml"""
 import os
 import sys
 
-import yaml
+from train.envs import load_configs
 
 NAMES = ("start", "mid", "end")
 
@@ -21,9 +21,7 @@ def snapshot_paths(run_dir):
     return {n: os.path.abspath(os.path.join(run_dir, "snapshots", n)) for n in NAMES}
 
 
-def main(cfg_path):
-    with open(cfg_path) as f:
-        cfg = yaml.safe_load(f)
+def link(cfg):
     run_dir = os.path.abspath(cfg["run_dir"])
     os.makedirs(os.path.join(run_dir, "snapshots"), exist_ok=True)
     for name, src in select(run_dir).items():
@@ -31,7 +29,12 @@ def main(cfg_path):
         if os.path.islink(dst):
             os.remove(dst)
         os.symlink(src, dst)
-        print(f"{name} -> {os.path.basename(src)}")
+        print(f"{cfg['env']} {name} -> {os.path.basename(src)}")
+
+
+def main(cfg_path):
+    for cfg in load_configs(cfg_path):
+        link(cfg)
 
 
 if __name__ == "__main__":

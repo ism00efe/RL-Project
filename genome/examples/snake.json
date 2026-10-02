@@ -1,0 +1,13 @@
+{
+ "id": "snake", "root": "head",
+ "nodes": {
+  "head": {"shape": "box", "size": [0.06, 0.04, 0.03]},
+  "seg": {"shape": "box", "size": [0.06, 0.04, 0.03], "recursion": 7}
+ },
+ "edges": [
+  {"parent": "head", "child": "seg", "pos": [-1, 0, 0], "dir": [-1, 0, 0],
+   "joint": {"axes": [[0, 0, 1], [0, 1, 0]], "range": [-40, 40], "strength": 5}},
+  {"parent": "seg", "child": "seg", "pos": [1, 0, 0], "dir": [1, 0, 0],
+   "joint": {"axes": [[0, 0, 1], [0, 1, 0]], "range": [-40, 40], "strength": 5}}
+ ]
+}

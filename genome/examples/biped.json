@@ -1,0 +1,17 @@
+{
+ "id": "biped", "root": "torso",
+ "nodes": {
+  "torso": {"shape": "box", "size": [0.06, 0.1, 0.12]},
+  "thigh": {"shape": "capsule", "size": [0.04, 0.1]},
+  "shin": {"shape": "capsule", "size": [0.035, 0.1]},
+  "foot": {"shape": "box", "size": [0.08, 0.04, 0.015]}
+ },
+ "edges": [
+  {"parent": "torso", "child": "thigh", "pos": [0, 0.6, -1], "dir": [0, 0, -1], "mirror": ["y"],
+   "joint": {"axes": [[0, 1, 0], [0, 0, 1]], "range": [-60, 60], "strength": 40}},
+  {"parent": "thigh", "child": "shin", "pos": [1, 0, 0], "dir": [1, 0, 0],
+   "joint": {"axes": [[0, 1, 0]], "range": [-80, 10], "strength": 30}},
+  {"parent": "shin", "child": "foot", "pos": [1, 0, 0], "dir": [0, 0, 1],
+   "joint": {"axes": [[0, 1, 0]], "range": [-40, 40], "strength": 15}}
+ ]
+}

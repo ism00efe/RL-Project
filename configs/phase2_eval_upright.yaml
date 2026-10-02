@@ -1,0 +1,9 @@
+# Eval for phase2_train_upright.yaml (rollouts use the default env, i.e. no termination).
+genomes: [genome/examples/quadruped.json, genome/examples/hexapod.json, genome/examples/snake.json, genome/examples/biped.json]
+run_root: runs/phase2_upright
+env_name: flat
+seed: 1
+num_envs: 128
+num_steps: 1000
+render: {steps: 500, width: 480, height: 360, camera: track}
+record: {snapshot: end, steps: 500}
