@@ -1,0 +1,12 @@
+# Steps 1.3-1.5: snapshot selection, fixed-seed rollouts, videos for the Phase 1 run.
+env: Go1JoystickFlatTerrain
+run_dir: runs/phase1_go1
+seed: 1                    # rollout seed (training used 0)
+num_envs: 128
+num_steps: 1000            # 20 s at ctrl_dt 0.02 (= training episode length)
+command: [1.0, 0.0, 0.0]   # fixed joystick command held all episode: vx m/s, vy m/s, yaw rad/s (training range vx ±1.5)
+render:
+  steps: 500               # 10 s per video
+  width: 480
+  height: 360
+  camera: track

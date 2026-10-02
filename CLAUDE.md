@@ -17,10 +17,20 @@ Full plan: `docs/PLAN.md` — read the relevant phase section only when starting
 `genome/` graph genome · `builder/` genome→MJCF · `envs/` procedural terrain + tasks · `train/` PPO inner loop · `evolve/` outer loop · `record/` trajectory export · `viewer/` Three.js · `runs/` (gitignored) · `configs/`
 
 ## Env
-RTX 4060 8 GB, 32 GB RAM. JAX GPU needs Linux → WSL2 if on Windows. Check: `python -c "import jax; print(jax.devices())"`.
+RTX 4060 8 GB, 32 GB RAM. JAX GPU needs Linux → WSL2 (distro `Ubuntu-24.04`, repo at `~/RL-Project`, setup `scripts/setup_env.sh`). Check: `python -c "import jax; print(jax.devices())"`.
 
 ## Status
 - Phase: 1
-- Step: 1.1 (deps pinned in `requirements.txt`, `scripts/setup_env.sh`; GPU check pending on user's 4060) → 1.2 ready to run
-- Last measurement: cloud CPU smoke test `configs/phase1_go1_smoke.yaml`: pipeline OK, checkpoint written (170 s); CPU sim ≈ 900 env-steps/s
-- Notes: Training runs on the user's RTX 4060 (decided 2026-10-02); this cloud container has no GPU. 1.2 run: `python -m train.train_ppo configs/phase1_go1.yaml` (Playground defaults, 200M steps, 8192 envs; checkpoints at each of 10 evals → `runs/phase1_go1/ckpt`, likely covers 1.3). If 8192 envs OOM on 8 GB: report, don't lower silently.
+- Step: 1.1–1.5 done → exit-criterion check awaiting user (see Notes); then 1.6 (recording format v1 = major decision, ask first)
+- Last measurement (2026-10-02, RTX 4060 Laptop, WSL2 Ubuntu-24.04, py3.11):
+  - 1.1 `[CudaDevice(id=0)]`
+  - 1.2 `FINAL Go1JoystickFlatTerrain step 206438400 mean_reward 28.27 time 1132s` (8192 envs fit, 6.6 GB)
+  - 1.3 snapshots start/mid/end = ckpt 0 / 114688000 / 206438400 → `runs/phase1_go1/snapshots/`
+  - 1.4 `configs/phase1_eval.yaml` (seed 1, 128 envs × 1000 steps, fixed cmd vx=1.0): mean_vx random −0.012, start −0.004, mid 0.918, end 0.928
+  - 1.5 `runs/phase1_go1/videos/start_mid_end.mp4`
+- Notes:
+  - Exit criterion "end ≥ 5× random" is ill-posed: random/start ≈ 0 (slightly negative) → ratio −79. End tracks 93% of commanded speed. Need user to confirm Phase 1 counts as passed or to restate the criterion (e.g. absolute threshold).
+  - MJX-Warp printed "solver iterations limit reached" every step (Playground Go1 uses 1 solver iteration by design): 2 GB log in 8 min, and it throttled training. `train/envs.py:load_env` sets `opt._impl.warn_overflow=0` (print-only, physics unchanged) → 200M steps in 19 min.
+  - Brax saves no step-0 checkpoint; `train_ppo.save_initial_checkpoint` saves the exact init params (ppo.train with num_timesteps=0, same seed).
+  - Brax 0.14.2 `load_policy` KeyErrors on `mean_kernel_init_fn: null`; `train/rollout.py:load_policy` works around it.
+  - Run steps: `python -m train.train_ppo configs/phase1_go1.yaml`, then `python -m train.{snapshots,rollout,render} configs/phase1_eval.yaml` (render: `MUJOCO_GL=egl`).
