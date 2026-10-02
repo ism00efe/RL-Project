@@ -12,10 +12,11 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 $("stage").appendChild(renderer.domElement);
 
-const BG = 0xe9e6e1;
+// Scene colors come from the page's CSS tokens so the floor follows the light/dark theme.
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(BG);
-scene.fog = new THREE.Fog(BG, 6, 22);
+scene.background = new THREE.Color();
+scene.fog = new THREE.Fog(0, 6, 22);
 
 const camera = new THREE.PerspectiveCamera(40, 1, 0.02, 100);
 camera.position.set(1.6, 0.9, 1.6);
@@ -34,13 +35,16 @@ sun.shadow.bias = -0.0004;
 Object.assign(sun.shadow.camera, { left: -2, right: 2, top: 2, bottom: -2, near: 0.1, far: 12 });
 scene.add(sun, sun.target);
 
+const checker = document.createElement("canvas");
+checker.width = checker.height = 256;
+function paintChecker() {
+  const g = checker.getContext("2d");
+  g.fillStyle = css("--tile-a"); g.fillRect(0, 0, 256, 256);
+  g.fillStyle = css("--tile-b"); g.fillRect(0, 0, 128, 128); g.fillRect(128, 128, 128, 128);
+}
 function checkerTexture() {
-  const c = document.createElement("canvas");
-  c.width = c.height = 256;
-  const g = c.getContext("2d");
-  g.fillStyle = "#f2efea"; g.fillRect(0, 0, 256, 256);
-  g.fillStyle = "#e3dfd8"; g.fillRect(0, 0, 128, 128); g.fillRect(128, 128, 128, 128);
-  const t = new THREE.CanvasTexture(c);
+  paintChecker();
+  const t = new THREE.CanvasTexture(checker);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(100, 100); // 0.5 m tiles on a 100 m plane
   t.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -52,6 +56,16 @@ const ground = new THREE.Mesh(new THREE.PlaneGeometry(100, 100),
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
+
+function applyTheme() {
+  scene.background.setStyle(css("--bg"), THREE.SRGBColorSpace);
+  scene.fog.color.copy(scene.background);
+  paintChecker();
+  ground.material.map.needsUpdate = true;
+}
+applyTheme();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
 // MuJoCo is z-up; three is y-up. Everything from the recording lives under `world`.
 const world = new THREE.Group();
@@ -79,7 +93,8 @@ function geomMesh(g) {
   return mesh;
 }
 
-let rec = null, parts = [], t = 0, playing = true;
+// Playback starts paused for viewers who ask for reduced motion.
+let rec = null, parts = [], t = 0, playing = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 const tmpQ0 = new THREE.Quaternion(), tmpQ1 = new THREE.Quaternion();
 const tmpV0 = new THREE.Vector3(), tmpV1 = new THREE.Vector3();
 
@@ -99,8 +114,11 @@ function load(r) {
   $("generation").textContent = m.generation;
   $("parent").textContent = m.parent_id ?? "—";
   $("env").textContent = m.env;
-  $("fitness-name").textContent = m.fitness_name || "fitness";
-  $("fitness").textContent = typeof m.fitness === "number" ? m.fitness.toFixed(3) : m.fitness;
+  $("fitness-name").textContent = m.fitness_name === "mean_vx" ? "mean speed" : (m.fitness_name || "fitness");
+  $("fitness").textContent = typeof m.fitness === "number"
+    ? `${m.fitness.toFixed(2)}${m.fitness_name === "mean_vx" ? " m/s" : ""}` : m.fitness;
+  $("parts").textContent = r.parts.length;
+  $("error").hidden = true;
   pose(0);
   // Start the camera behind-left of the root, looking at it.
   const root = rootWorld(new THREE.Vector3());
@@ -148,7 +166,7 @@ function tick() {
     else { camera.position.add(curRoot.clone().sub(controls.target)); controls.target.copy(curRoot); }
     sun.position.copy(curRoot).add(new THREE.Vector3(2.5, 5, 1.5));
     sun.target.position.copy(curRoot);
-    $("time").textContent = `${t.toFixed(1)}s`;
+    $("time").textContent = `${t.toFixed(1)} s`;
   }
   controls.update();
   renderer.render(scene, camera);
@@ -165,11 +183,12 @@ window.addEventListener("resize", resize);
 resize();
 
 // ---------- UI ----------
+$("play").textContent = playing ? "Pause" : "Play";
 $("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; };
 $("scrub").oninput = (e) => { if (rec) { t = Number(e.target.value) * duration(); } };
 window.addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); $("play").click(); } });
 
-function showError(msg) { const el = $("error"); el.textContent = msg; el.style.display = "block"; }
+function showError(msg) { const el = $("error"); el.textContent = msg; el.hidden = false; }
 
 async function fetchJSON(url) {
   const r = await fetch(url);

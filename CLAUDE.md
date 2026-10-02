@@ -20,18 +20,16 @@ Full plan: `docs/PLAN.md` — read the relevant phase section only when starting
 RTX 4060 8 GB, 32 GB RAM. JAX GPU needs Linux → WSL2 (distro `Ubuntu-24.04`, repo at `~/RL-Project`, setup `scripts/setup_env.sh`). Check: `python -c "import jax; print(jax.devices())"`.
 
 ## Status
-- Phase: 1 complete (user accepted exit 2026-10-02) → Phase 2 step table written in `docs/PLAN.md`, awaiting user approval before 2.1
-- Step: 1.6 done: `record/export.py` → `runs/phase1_go1/recordings/end.json`, 13 parts (37 primitive geoms), 500 frames, fitness 0.91; spec `docs/RECORDING.md`
-- Last measurement (2026-10-02, RTX 4060 Laptop, WSL2 Ubuntu-24.04, py3.11):
-  - 1.1 `[CudaDevice(id=0)]`
-  - 1.2 `FINAL Go1JoystickFlatTerrain step 206438400 mean_reward 28.27 time 1132s` (8192 envs fit, 6.6 GB)
-  - 1.3 snapshots start/mid/end = ckpt 0 / 114688000 / 206438400 → `runs/phase1_go1/snapshots/`
-  - 1.4 `configs/phase1_eval.yaml` (seed 1, 128 envs × 1000 steps, fixed cmd vx=1.0): mean_vx random −0.012, start −0.004, mid 0.918, end 0.928
-  - 1.5 `runs/phase1_go1/videos/start_mid_end.mp4`
+- Phase: 2 — all steps 2.1–2.8 done (user said "continue" = approved table + 0.3 m/s threshold, 2026-10-02). Exit met on paper but gaits not credible → awaiting user decision on reward/energy/motor/contact settings before Phase 3 (see Notes).
+- Last measurement (2026-10-02, RTX 4060 Laptop, WSL2):
+  - 2.1 round-trip 4/4 · 2.2 parts/joints: quadruped 9/12, hexapod 13/18, snake 8/14, biped 7/8
+  - 2.3 zero-action 10 s: 0 NaN all 4 · 2.4 env-steps/s 198k–236k (4096 envs)
+  - 2.5 end mean_vx m/s, `configs/phase2_train.yaml` (base) → `phase2_train_upright.yaml`: quadruped 4.76→7.63, hexapod 4.57→9.07, snake 1.95→1.64, biped 2.26→5.48 (random/start ≈ 0)
+  - 2.6 recordings `runs/phase2{,_upright}/<genome>/recordings/end.json` · 2.7/2.8 player https://claude.ai/artifact/Y4zQUNqsThGYzY7zaYMcrz (private)
 - Notes:
-  - Exit criterion "end ≥ 5× random" is ill-posed: random/start ≈ 0 (slightly negative) → ratio −79. End tracks 93% of commanded speed; user accepted as passed. Phase 2 uses an absolute threshold instead.
-  - Recording v1 stores primitive geoms only; Go1 visual meshes (~100k verts) skipped, its collision primitives stand in.
-  - MJX-Warp printed "solver iterations limit reached" every step (Playground Go1 uses 1 solver iteration by design): 2 GB log in 8 min, and it throttled training. `train/envs.py:load_env` sets `opt._impl.warn_overflow=0` (print-only, physics unchanged) → 200M steps in 19 min.
-  - Brax saves no step-0 checkpoint; `train_ppo.save_initial_checkpoint` saves the exact init params (ppo.train with num_timesteps=0, same seed).
-  - Brax 0.14.2 `load_policy` KeyErrors on `mean_kernel_init_fn: null`; `train/rollout.py:load_policy` works around it.
-  - Run steps: `python -m train.train_ppo configs/phase1_go1.yaml`, then `python -m train.{snapshots,rollout,render} configs/phase1_eval.yaml` (render: `MUJOCO_GL=egl`).
+  - Genome v1 `docs/GENOME.md` and reward (forward vel − 0.05·mean(a²), no termination) were chosen without explicit user review; user may veto.
+  - Base reward: quadruped/hexapod learned to run upside down (upright 2%). `upright_termination` (opt-in env flag) fixes it (upright 100%), but speeds are implausible: biped hops/skates on one sliding foot at 5.5 m/s; contact slip ~2 m/s median. Likely causes: motor strength (gear 15–40 N·m on 0.5–1 kg links), tiny energy cost, soft contacts (4 solver iters). Candidates: torque·velocity energy cost, lower gear, more solver iterations / stiffer contacts. Needs user decision (rule 6).
+  - Phase 1 (done): Go1 end mean_vx 0.928 at cmd 1.0; recording v1 `docs/RECORDING.md`; exit accepted by user.
+  - MJX-Warp overflow printf disabled (`warn_overflow=0`, print-only) — it wrote 2 GB/8 min and throttled training.
+  - Brax 0.14.2 checkpoint quirks handled in `train/rollout.py:load_policy`; no step-0 ckpt in brax → `train_ppo.save_initial_checkpoint`.
+  - Run: `python -m train.train_ppo <train.yaml>`, then `python -m train.{snapshots,rollout,render} <eval.yaml>`, `python -m record.export <eval.yaml>` (`MUJOCO_GL=egl`). Configs with `genomes:` expand per body. Viewer: `python record/collect.py <rec.json[:tag]>...`, `npm --prefix viewer run build:artifact`.

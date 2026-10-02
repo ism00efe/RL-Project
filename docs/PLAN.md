@@ -60,6 +60,12 @@ Exit: all 4 compile, are stable, train, and play in browser. Output: shareable l
 | 2.7 | Three.js player (Vite, `viewer/`): load recording, ground, shadows, soft light, follow cam, genome/generation/fitness label | Go1 recording plays; one screenshot |
 | 2.8 | Static build + shareable link (hosting target to be chosen with user) | URL plays all 4 recordings |
 
+Result (2026-10-02): all steps done; exit criterion met on paper (every body ≥ 0.3 m/s) but the gaits are not yet credible.
+End mean_vx (m/s), base reward → upright-termination variant: quadruped 4.76 → 7.63, hexapod 4.57 → 9.07, snake 1.95 → 1.64, biped 2.26 → 5.48.
+Base run: quadruped/hexapod run upside down (upright 2% of steps). Variant fixes flipping (upright 100%) but speeds are implausible
+(biped skates on one sliding foot). Cause: strong motors vs. negligible energy cost, plus soft-contact foot slip. Open decision before Phase 3:
+reward/energy terms, motor strength, contact settings. Player: https://claude.ai/artifact/Y4zQUNqsThGYzY7zaYMcrz (private until shared).
+
 ### Phase 3 — Evolution in niches (main result)
 Outer loop: population → mutate → short PPO each → fitness → select. Same starting form, different envs: flat, stairs, rough, slope (+ optional tasks: carry, push).
 Exit: best individuals of ≥2 envs topologically distinct (leg count / structure). Output: species gallery, generational change, lineage tree.

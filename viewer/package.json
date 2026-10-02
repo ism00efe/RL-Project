@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:artifact": "vite build && node scripts/to-artifact.mjs"
   },
   "dependencies": {
     "three": "0.186.1"

@@ -2,57 +2,95 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>evo player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Evo Creature Player</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" />
   <style>
-    :root { --ink: #1d2126; --muted: #5f6872; --panel: rgba(255,255,255,0.82); --line: rgba(29,33,38,0.12); --accent: #d9733a; }
+    /* Layout: full-bleed 3D stage (a lab floor seen from a drone) with two floating instruments: specimen tag top-left, transport bar bottom. */
+    :root {
+      --bg: #e7e9e4;        /* floor haze, faint sage */
+      --tile-a: #eef0eb;    /* floor checker */
+      --tile-b: #dde1da;
+      --fg: #1c2420;
+      --muted: #5c6862;
+      --panel: rgba(250, 252, 248, 0.84);
+      --line: rgba(28, 36, 32, 0.14);
+      --accent: #c8642e;    /* matches the root body part color in recordings */
+      --font-display: "Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
+      --font-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #171b19; --tile-a: #1f2421; --tile-b: #191d1b; --fg: #e6ebe7; --muted: #98a59e;
+        --panel: rgba(30, 36, 33, 0.82); --line: rgba(230, 235, 231, 0.14); --accent: #e0814c; color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #171b19; --tile-a: #1f2421; --tile-b: #191d1b; --fg: #e6ebe7; --muted: #98a59e;
+      --panel: rgba(30, 36, 33, 0.82); --line: rgba(230, 235, 231, 0.14); --accent: #e0814c; color-scheme: dark;
+    }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; background: #e9e6e1; color: var(--ink);
-      font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+    html, body { margin: 0; height: 100%; overflow: hidden; }
+    body { background: var(--bg); color: var(--fg); font: 14px/1.4 var(--font-display); }
     #stage { position: fixed; inset: 0; }
-    .panel { position: fixed; background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line);
-      border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,0.08); }
-    #label { top: 16px; left: 16px; padding: 12px 16px; min-width: 200px; }
-    #label h1 { margin: 0 0 6px; font-size: 18px; letter-spacing: 0.01em; }
-    #label dl { display: grid; grid-template-columns: auto auto; gap: 2px 14px; margin: 0; font-size: 13px; }
+    #stage canvas { display: block; touch-action: none; }
+    .panel { position: fixed; background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--line); border-radius: 8px; }
+    #label { top: calc(16px + env(safe-area-inset-top, 0px)); left: 16px; padding: 12px 16px 14px; min-width: 210px; max-width: calc(100vw - 32px); }
+    #label .eyebrow { font: 500 11px/1 var(--font-data); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    #label h1 { margin: 6px 0 10px; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+    #label h1::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--accent);
+      margin-right: 8px; vertical-align: 2px; }
+    #label dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; margin: 0; font: 12px/1.5 var(--font-data); }
     #label dt { color: var(--muted); }
-    #label dd { margin: 0; font-variant-numeric: tabular-nums; }
-    #controls { left: 50%; bottom: 16px; transform: translateX(-50%); padding: 8px 12px; display: flex; gap: 10px;
-      align-items: center; width: min(720px, calc(100vw - 32px)); }
-    #controls select, #controls button { font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 6px;
-      padding: 4px 8px; color: var(--ink); cursor: pointer; }
-    #controls button { min-width: 64px; }
+    #label dd { margin: 0; font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+    #controls { left: 16px; right: 16px; margin: 0 auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      padding: 8px 10px; display: flex; gap: 8px; align-items: center; max-width: 720px; }
+    #controls select, #controls button { font: 500 13px/1 var(--font-display); border: 1px solid var(--line); background: var(--bg);
+      color: var(--fg); border-radius: 6px; padding: 7px 9px; cursor: pointer; min-width: 0; }
+    #controls button { min-width: 68px; }
+    #controls :focus-visible, #scrub:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    #pick { flex: 0 1 auto; max-width: 40%; }
     #scrub { flex: 1; accent-color: var(--accent); min-width: 60px; }
-    #time { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 44px; text-align: right; }
-    #error { top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 16px 20px; display: none; max-width: 80vw; }
+    #time { font: 12px var(--font-data); font-variant-numeric: tabular-nums; color: var(--muted); min-width: 44px; text-align: right; }
+    #error { top: 50%; left: 16px; right: 16px; margin: 0 auto; max-width: 480px; transform: translateY(-50%); padding: 16px 20px; }
+    #hint { position: fixed; right: 16px; top: calc(16px + env(safe-area-inset-top, 0px)); font: 11px var(--font-data); color: var(--muted); }
     @media (max-width: 560px) {
       #controls { flex-wrap: wrap; }
+      #pick { max-width: none; flex: 1 1 100%; }
       #scrub { order: 5; flex-basis: 100%; }
+      #hint { display: none; }
+      #label h1 { font-size: 19px; }
     }
   </style>
 </head>
 <body>
   <div id="stage"></div>
   <div id="label" class="panel">
-    <h1 id="genome">—</h1>
+    <div class="eyebrow">genome</div>
+    <h1 id="genome">loading…</h1>
     <dl>
       <dt>generation</dt><dd id="generation">—</dd>
       <dt>parent</dt><dd id="parent">—</dd>
-      <dt>environment</dt><dd id="env">—</dd>
+      <dt>terrain</dt><dd id="env">—</dd>
       <dt id="fitness-name">fitness</dt><dd id="fitness">—</dd>
+      <dt>parts</dt><dd id="parts">—</dd>
     </dl>
   </div>
+  <div id="hint">drag to orbit · scroll to zoom · space to pause</div>
   <div id="controls" class="panel">
-    <select id="pick" aria-label="recording"></select>
-    <button id="play">Pause</button>
-    <select id="speed" aria-label="speed">
+    <select id="pick" aria-label="Creature"></select>
+    <button id="play" type="button">Pause</button>
+    <select id="speed" aria-label="Playback speed">
       <option value="0.25">0.25×</option><option value="0.5">0.5×</option>
       <option value="1" selected>1×</option><option value="2">2×</option>
     </select>
-    <input id="scrub" type="range" min="0" max="1" step="0.001" value="0" aria-label="time" />
-    <span id="time">0.0s</span>
+    <input id="scrub" type="range" min="0" max="1" step="0.001" value="0" aria-label="Time" />
+    <span id="time">0.0 s</span>
   </div>
-  <div id="error" class="panel"></div>
+  <div id="error" class="panel" hidden></div>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
