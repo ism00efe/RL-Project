@@ -20,8 +20,15 @@ Full plan: `docs/PLAN.md` — read the relevant phase section only when starting
 RTX 4060 8 GB, 32 GB RAM. JAX GPU needs Linux → WSL2 (distro `Ubuntu-24.04`, repo at `~/RL-Project`, setup `scripts/setup_env.sh`). Check: `python -c "import jax; print(jax.devices())"`.
 
 ## Status
-- Phase: 2b (physics credibility), steps 2b.1–2b.4 done 2026-10-02; BLOCKED on user decision (rule 6): retrained bodies barely move. Phase 2 steps 2.1–2.8 done (results below).
-- Next: user picks a fix, then re-run 2b.4. Options (not tried, no silent tuning): (a) energy_cost_weight 1.0 → 0.1–0.25; (b) stronger muscles (MUSCLE_STRESS or genome strength > 1; current torques ≈ ⅓–½ of Phase 2 gears for legs); (c) both; (d) longer training. Snake is a separate case: 28 N·m on 0.6 kg segments makes random motion cost ~600 W, it never found positive reward.
+- Phase: 2b (physics credibility), steps 2b.1–2b.4 run 2026-10-02. PAUSED: the plan has no stated purpose for movement (see "Goal gap" below); define it with the user before any retrain or Phase 3. Phase 2 steps 2.1–2.8 done (results below).
+- Next: discuss with user what a creature's task/fitness is (why it moves at all). Do NOT retune energy weight / muscles to "make them move"; that assumes speed is the goal, which the user never set.
+- Goal gap (user, 2026-10-02): the user never made speed a goal. "Forward velocity" as reward and as success metric (Phase 1/2 exit, 2b) came from the AI-written plan (standard RL locomotion benchmark), never discussed or tied to the vision. Goal is NOT "fastest possible body" nor "fastest this body can be"; bodies are expected to change through evolution. Consequences:
+  - Bodies standing still under 2b reward (forward vel − energy, no penalty for not moving) is an expected, valid outcome of that reward, not a bug; it should have been listed as a likely outcome before training.
+  - Not moving may itself be legitimate (plants in a future ecosystem, sloth-like low-energy species). Whether "everything must move" is an open question.
+  - If movement IS required, it must come from the task (e.g. large penalty / no survival without reaching something), not from tuning weights.
+  - Snake not moving is physically expected: real snakes need scales (anisotropic friction), ours has none (idea already in PLAN Phase 2b notes).
+  - Open: what selects bodies in Phase 3 ("best individuals" has no defined fitness).
+- Physics outcome of 2b that stands regardless: default sim was exploited (2b.1); strict sim + muscle model + energy cost remove sliding/flying artifacts (slip 0, results identical across sim settings).
 - Last measurement (2026-10-02, RTX 4060 Laptop, WSL2):
   - 2.1 round-trip 4/4 · 2.2 parts/joints: quadruped 9/12, hexapod 13/18, snake 8/14, biped 7/8
   - 2.3 zero-action 10 s: 0 NaN all 4 · 2.4 env-steps/s 198k–236k (4096 envs)

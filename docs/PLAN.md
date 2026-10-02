@@ -81,6 +81,11 @@ Fr = v²/(g·leg_length) reported (animals run at Fr ≲ 3; above that, investig
 | 2b.3 | Energy cost: penalty ∝ Σ\|τ·ω\| (mechanical power), weight in config; log cost of transport (J/(kg·m)) | CoT per body printed by eval |
 | 2b.4 | Retrain 4 bodies with 2b.2+2b.3 (+ strict sim settings if 2b.1 shows they matter), upright termination OFF (flipping allowed if it is physically valid); eval, videos, recordings, update player | per body: mean_vx, upright_frac, slip p50, CoT, Fr; player link updated |
 
+Result (2026-10-02): 2b.1–2b.4 run. Physics artifacts gone (slip p50 0, results identical under default/strict/ultra sim), but under
+reward = forward velocity − energy cost every body learned to (almost) stand still. Paused: the user never set speed as a goal; forward
+velocity was a benchmark default from this plan. Open question before retraining or Phase 3: what is a creature's task / fitness, and is
+not moving acceptable (plants, low-energy species)? Details in CLAUDE.md Status ("Goal gap").
+
 Idea for later (not in 2b): anisotropic friction as a genome trait ("scales") — real snakes rely on it; our ground has isotropic friction.
 
 ### Phase 3 — Evolution in niches (main result)
