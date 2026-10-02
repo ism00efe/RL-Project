@@ -42,9 +42,23 @@ Exit: trained mean forward velocity ≥ 5× random policy. Output: side-by-side 
 | 1.5 | Render 3 videos, combine side by side | one video file |
 | 1.6 | Define recording format v1, export final policy trajectory | file + part count |
 
+Result (2026-10-02): end mean_vx 0.928 m/s at commanded 1.0 (start −0.004, random −0.012). The ratio criterion is meaningless when the baseline is ≈0; the user accepted Phase 1 as passed. Recording format v1: `docs/RECORDING.md`.
+
 ### Phase 2 — Genome + web player
 Graph genome + compiler. 3–4 hand-written genomes (quadruped, hexapod, snake, biped), each trained. Recording format + Three.js player (ground, shadows, soft light, follow cam, generation/fitness label).
 Exit: all 4 compile, are stable, train, and play in browser. Output: shareable link.
+"Train" = fixed-seed mean forward velocity of the end snapshot ≥ 0.3 m/s (an absolute threshold, because ratios to a ≈0 baseline are meaningless; see Phase 1).
+
+| # | Step | Verify |
+|---|---|---|
+| 2.1 | Genome schema: graph nodes (part shape, size) + edges (joint type, axis, range, recursion, symmetry), JSON (de)serialization; schema needs user approval | 4 hand-written genome files round-trip unchanged |
+| 2.2 | Compiler genome → MJCF (unroll recursion/symmetry, primitives only, one motor per joint) | 4 MJCFs load in MuJoCo; parts/joints count each |
+| 2.3 | Stability: 10 s passive sim per body in MJX | 4 lines: no NaN, max \|qvel\| |
+| 2.4 | Generic locomotion env for any compiled body (obs: joint pos/vel, torso orientation/velocity; reward: forward velocity + alive − energy; flat ground); reward terms need user approval | env jit-steps for all 4; env-steps/s |
+| 2.5 | Train each body with PPO (same hyperparameters, fixed budget, `configs/`) | 4 numbers: end mean_vx (≥ 0.3) |
+| 2.6 | Export each trained policy as recording v1 | 4 files + part counts |
+| 2.7 | Three.js player (Vite, `viewer/`): load recording, ground, shadows, soft light, follow cam, genome/generation/fitness label | Go1 recording plays; one screenshot |
+| 2.8 | Static build + shareable link (hosting target to be chosen with user) | URL plays all 4 recordings |
 
 ### Phase 3 — Evolution in niches (main result)
 Outer loop: population → mutate → short PPO each → fitness → select. Same starting form, different envs: flat, stairs, rough, slope (+ optional tasks: carry, push).

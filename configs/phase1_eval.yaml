@@ -10,3 +10,7 @@ render:
   width: 480
   height: 360
   camera: track
+record:                    # step 1.6: recording format v1 export (docs/RECORDING.md)
+  snapshot: end
+  steps: 500
+  meta: {genome_id: go1, generation: 0, parent_id: null}
