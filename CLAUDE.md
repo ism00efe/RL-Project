@@ -13,6 +13,11 @@ Full plan: `docs/PLAN.md` (v2, built from the final ecosystem goal) — read its
 7. No behavior or body is hand-scripted; only the world is defined (terrain, physics, food, energy and life-cycle rules). No external fitness or speed goal (see PLAN principles).
 8. When a phase's exit criterion is met: report the result, then before starting the next phase write a numbered step table for it into `docs/PLAN.md` (same format as Phase 1: step + one-line verification) and ask for approval. Stages beyond the next one are only sketched; detail them together with the user first. Every stage must add a piece of the final world.
 
+## Communicating with the user
+Turkish, short and clear. Lead with the problem or result; few numbers, after the point. Answer each question separately and directly.
+Say why you ask something. Where the user must decide: give options + your recommendation. Reason from the final goal (PLAN),
+never treat an intermediate metric or a feasibility test as the goal.
+
 ## Layout
 `genome/` graph genome · `builder/` genome→MJCF · `envs/` procedural terrain + tasks · `train/` PPO inner loop · `evolve/` outer loop · `record/` trajectory export · `viewer/` Three.js · `runs/` (gitignored) · `configs/`
 
