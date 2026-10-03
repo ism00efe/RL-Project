@@ -63,7 +63,11 @@ feasible at all; if E1.2 fails, stop and re-plan with the user before E1.5). All
 Decision A (user, 2026-10-03): E1 test world = proto-E2 food arena: flat ground, scattered food pellets eaten on touch,
 energy = food − basal cost − muscle work, measure = energy at end of a fixed lifetime (no reproduction yet). Needs touch +
 food-direction senses already in E1. Correction: the user never ruled out goals in general; what was rejected is speed as an
-imposed goal. Exact wording of principle 1 to be confirmed with the user.
+imposed goal. Proposed new wording of principle 1 (awaiting user OK): "The world is the main selector (energy, death,
+reproduction). No imposed tasks like speed; any other goal is added only by user decision."
+Working mode proposed for E1 (awaiting user OK): one approval for the whole table + template 6×5 + evosax + brain design of E1.5;
+then run steps without per-step approval, stopping only on a real blocker (E1.2 mixed-body batching fails → user picks: topology
+buckets vs MJX pure-JAX impl; dependency conflict; rule 6 cases).
 Genome v2 extensibility: every template part carries an open `traits` dict (defaults when absent), so new per-part traits
 (eyes/vision sensor, scales = anisotropic friction, armor) are added later without breaking old genomes. Changing template
 capacity (L×S) later = recompile + convert populations (lossless only when growing).
