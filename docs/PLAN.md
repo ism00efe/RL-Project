@@ -65,7 +65,7 @@ energy = food − basal cost − muscle work, measure = energy at end of a fixed
 food-direction senses already in E1. Correction: the user never ruled out goals in general; what was rejected is speed as an
 imposed goal. Proposed new wording of principle 1 (awaiting user OK): "The world is the main selector (energy, death,
 reproduction). No imposed tasks like speed; any other goal is added only by user decision."
-Working mode proposed for E1 (awaiting user OK): one approval for the whole table + template 6×5 + evosax + brain design of E1.5;
+Working mode proposed for E1 (awaiting user OK): one approval for the whole table + template 6×5 + brain design of E1.5 (`evosax` approved by user 2026-10-03);
 then run steps without per-step approval, stopping only on a real blocker (E1.2 mixed-body batching fails → user picks: topology
 buckets vs MJX pure-JAX impl; dependency conflict; rule 6 cases).
 Genome v2 extensibility: every template part carries an open `traits` dict (defaults when absent), so new per-part traits
