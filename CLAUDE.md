@@ -1,7 +1,7 @@
 # evo — agent brief
 
 Co-evolution of body + controller for 3D creatures (MuJoCo/MJX, PPO, evolution). No LLMs in the system.
-Full plan: `docs/PLAN.md` — read the relevant phase section only when starting a new step or phase.
+Full plan: `docs/PLAN.md` (v2, built from the final ecosystem goal) — read its principles before proposing anything; read the relevant stage section when starting it.
 
 ## Rules
 1. Work only on the active step below. Don't expand scope; put ideas under Notes.
@@ -10,8 +10,8 @@ Full plan: `docs/PLAN.md` — read the relevant phase section only when starting
 4. After each step, update Status below: what finished, measured number, next step.
 5. Experiments configured in `configs/` (YAML), fixed seeds, reproducible.
 6. If training diverges (NaN, sim instability) or runs far longer than expected: record it and ask. Don't silently tweak hyperparameters.
-7. No behavior or body is hand-scripted; only environments, tasks and rewards are defined.
-8. When a phase's exit criterion is met: report the result, then before starting the next phase write a numbered step table for it into `docs/PLAN.md` (same format as Phase 1: step + one-line verification) and ask for approval. Phases 4–5 are only sketched; detail them together with the user first.
+7. No behavior or body is hand-scripted; only the world is defined (terrain, physics, food, energy and life-cycle rules). No external fitness or speed goal (see PLAN principles).
+8. When a phase's exit criterion is met: report the result, then before starting the next phase write a numbered step table for it into `docs/PLAN.md` (same format as Phase 1: step + one-line verification) and ask for approval. Stages beyond the next one are only sketched; detail them together with the user first. Every stage must add a piece of the final world.
 
 ## Layout
 `genome/` graph genome · `builder/` genome→MJCF · `envs/` procedural terrain + tasks · `train/` PPO inner loop · `evolve/` outer loop · `record/` trajectory export · `viewer/` Three.js · `runs/` (gitignored) · `configs/`
@@ -20,15 +20,8 @@ Full plan: `docs/PLAN.md` — read the relevant phase section only when starting
 RTX 4060 8 GB, 32 GB RAM. JAX GPU needs Linux → WSL2 (distro `Ubuntu-24.04`, repo at `~/RL-Project`, setup `scripts/setup_env.sh`). Check: `python -c "import jax; print(jax.devices())"`.
 
 ## Status
-- Phase: 2b (physics credibility), steps 2b.1–2b.4 run 2026-10-02. PAUSED: the plan has no stated purpose for movement (see "Goal gap" below); define it with the user before any retrain or Phase 3. Phase 2 steps 2.1–2.8 done (results below).
-- Next: discuss with user what a creature's task/fitness is (why it moves at all). Do NOT retune energy weight / muscles to "make them move"; that assumes speed is the goal, which the user never set.
-- Goal gap (user, 2026-10-02): the user never made speed a goal. "Forward velocity" as reward and as success metric (Phase 1/2 exit, 2b) came from the AI-written plan (standard RL locomotion benchmark), never discussed or tied to the vision. Goal is NOT "fastest possible body" nor "fastest this body can be"; bodies are expected to change through evolution. Consequences:
-  - Bodies standing still under 2b reward (forward vel − energy, no penalty for not moving) is an expected, valid outcome of that reward, not a bug; it should have been listed as a likely outcome before training.
-  - Not moving may itself be legitimate (plants in a future ecosystem, sloth-like low-energy species). Whether "everything must move" is an open question.
-  - If movement IS required, it must come from the task (e.g. large penalty / no survival without reaching something), not from tuning weights.
-  - Snake not moving is physically expected: real snakes need scales (anisotropic friction), ours has none (idea already in PLAN Phase 2b notes).
-  - Open: what selects bodies in Phase 3 ("best individuals" has no defined fitness).
-- Physics outcome of 2b that stands regardless: default sim was exploited (2b.1); strict sim + muscle model + energy cost remove sliding/flying artifacts (slip 0, results identical across sim settings).
+- Stage: Plan v2 written 2026-10-03 (`docs/PLAN.md`): foundations F1–F3 (old Phases 1, 2, 2b) done; next = stage E1 (evolution engine). Plan v2 itself awaits user review; then write E1 step table and ask approval.
+- Core decisions (user, 2026-10-02/03): the world selects (energy, death, reproduction), no external fitness or speed goal; mutations are random; brains inherited (neuroevolution), lifetime learning only if it wins an equal-compute comparison; standing still is a legitimate strategy; final goal = multi-biome ecosystem with interacting species (details in PLAN principles). Old "Goal gap" discussion: speed/forward-velocity came from the v1 plan's benchmark default, never from the user.
 - Last measurement (2026-10-02, RTX 4060 Laptop, WSL2):
   - 2.1 round-trip 4/4 · 2.2 parts/joints: quadruped 9/12, hexapod 13/18, snake 8/14, biped 7/8
   - 2.3 zero-action 10 s: 0 NaN all 4 · 2.4 env-steps/s 198k–236k (4096 envs)
@@ -57,7 +50,8 @@ RTX 4060 8 GB, 32 GB RAM. JAX GPU needs Linux → WSL2 (distro `Ubuntu-24.04`, r
 
 ## Operating on the user's machine (Windows host + WSL2)
 - Canonical repo + venv + runs: WSL `Ubuntu-24.04`, `/root/RL-Project` (`.venv`, py3.11). Commands run as root: `wsl -d Ubuntu-24.04 -u root -- bash <script.sh>`.
-  From Git Bash set `MSYS_NO_PATHCONV=1`, and put multi-line commands in a script file (inline quoting through wsl.exe breaks). Strip CRLF (`sed -i 's/$//'`) from scripts written on Windows.
+  From Git Bash set `MSYS_NO_PATHCONV=1`, and put multi-line commands in a script file (inline quoting through wsl.exe breaks). Strip CRLF (`sed -i 's/
+$//'`) from scripts written on Windows.
 - Long runs: start detached so they survive tool timeouts: PowerShell `Start-Process wsl.exe -ArgumentList '-d','Ubuntu-24.04','-u','root','--','bash','<script>' -WindowStyle Hidden`; log to a file inside WSL, never tee to stdout.
 - GPU: one training at a time (JAX preallocates 75% of 8 GB). CPU-side checks: `JAX_PLATFORMS=cpu` (slow, contends with training). Render: `MUJOCO_GL=egl`.
 - Speed reference: Go1 200M steps 19 min; genome bodies 100M steps 8–11 min each (8192 envs).
