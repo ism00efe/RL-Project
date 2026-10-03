@@ -44,6 +44,27 @@ Adds: the machinery every later stage runs on. Answers Q1–Q5.
 Exit: mixed bodies run in one batch; a mutated child inherits and uses the parent's brain; Q4 decided by an equal-time comparison;
 measured throughput → realistic population size and generations/day.
 
+Step table (draft 2026-10-03, awaiting user approval). Order = riskiest machinery first (E1.1–E1.4 decide whether the design is
+feasible at all; if E1.2 fails, stop and re-plan with the user before E1.5). All runs strict sim (F3), fixed seeds, `configs/e1_*.yaml`.
+
+| # | Step | Verify |
+|---|---|---|
+| E1.1 | Fixed-capacity body template (Q1): one MJCF skeleton = root + L limb slots × S segments (proposal L=6, S=5 → 31+1 = 32 parts = current MAX_PARTS), ≤ 2 hinges per segment; genome → per-slot parameters (shape, size, attach point, dir, axes, range, strength, enabled). Disabled part = no collision, negligible mass, joint locked, motor off. Genome structure change → user approval | 4 example bodies expressed in the template: parts/joints/mass/max torques equal to `builder.compile` within 1%; zero-action 10 s 0 NaN |
+| E1.2 | Mixed bodies in one batch (Q1): per-env model fields (geom size/pos, body pos/quat/mass/inertia, joint axis/range, gear, masks) batched with vmap over one template model | 4 bodies × 1024 envs in one batch: 0 NaN; first 0.2 s trajectory vs separately compiled bodies max \|Δqpos\| < 1e-3; env-steps/s mixed vs single-body |
+| E1.3 | K creatures in one scene (Q3): template with K creature slots, creature–creature contacts on | K ∈ {1, 4, 16}: 0 NaN over 10 s; creature-steps/s per K |
+| E1.4 | Throughput table (Q5): creature-seconds simulated per wall-second for (envs, K) grid at strict physics, GPU memory | one table; → max population × lifetime per hour |
+| E1.5 | Body-agnostic brain (Q2): one small shared network per joint (inputs: own joint state, segment contact/orientation, slot id, messages from parent/children) + a global part (root state); parameter count independent of body | same parameters drive all 4 bodies in one batch; parameter count (one number) |
+| E1.6 | Random mutation operators on genome v2 (body + brain): parameter noise, add/remove segment, add/remove limb, toggle hinge, brain weight noise; rates in config | 1000 mutants per example: % valid (compiles, 0 NaN 2 s); histogram of part counts |
+| E1.7 | Minimal test world for E1 measurements (see open decision A below) | random brains: mean ± sd of the world's own measure over 1024 creatures (baseline) |
+| E1.8 | Neuroevolution loop (`evosax`, new dependency) over mixed fixed bodies in the test world; only the world's measure ranks, no extra reward terms | measure per generation rises above random baseline; generations/hour |
+| E1.9 | Inheritance (Q2 exit): evolved parent brain on its mutated children vs a random brain on the same children | children keep ≥ 50% of parent's gain over random (one ratio) |
+| E1.10 | Q4: inherited-only (ES) vs ES + lifetime PPO fine-tuning (Baldwinian: learned weights not inherited), same wall-clock budget | two numbers (final measure each) + decision recorded |
+
+Open decision A (needed by E1.7): which signal ranks creatures in the E1 feasibility runs. Principle 1 forbids an external goal,
+so the recommended option is a proto-E2 arena: flat ground, scattered food pellets eaten on touch, energy = food − basal cost −
+muscle work, measure = energy at end of a fixed lifetime (no reproduction yet). Needs a food sense (touch + food direction) earlier
+than E2. Alternative: displacement (cheaper, but it is the speed goal the user rejected).
+
 ### E2 — One biome, one lineage, a life cycle
 Adds: food, energy budget (basal cost ∝ mass + muscle work), death, asexual reproduction with mutation, senses (at least touch +
 a food sense) as genome traits.
