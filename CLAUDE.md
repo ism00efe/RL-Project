@@ -20,7 +20,7 @@ Full plan: `docs/PLAN.md` (v2, built from the final ecosystem goal) — read its
 RTX 4060 8 GB, 32 GB RAM. JAX GPU needs Linux → WSL2 (distro `Ubuntu-24.04`, repo at `~/RL-Project`, setup `scripts/setup_env.sh`). Check: `python -c "import jax; print(jax.devices())"`.
 
 ## Status
-- Stage: Plan v2 written 2026-10-03 (`docs/PLAN.md`): foundations F1–F3 (old Phases 1, 2, 2b) done; next = stage E1 (evolution engine). Plan v2 itself awaits user review; then write E1 step table and ask approval.
+- Stage: Plan v2 (`docs/PLAN.md`) written and reviewed with user 2026-10-03 (decisions recorded in PLAN "Decisions"). Foundations F1–F3 done. Next: write the E1 (evolution engine) step table into PLAN and ask user approval before running anything.
 - Core decisions (user, 2026-10-02/03): the world selects (energy, death, reproduction), no external fitness or speed goal; mutations are random; brains inherited (neuroevolution), lifetime learning only if it wins an equal-compute comparison; standing still is a legitimate strategy; final goal = multi-biome ecosystem with interacting species (details in PLAN principles). Old "Goal gap" discussion: speed/forward-velocity came from the v1 plan's benchmark default, never from the user.
 - Last measurement (2026-10-02, RTX 4060 Laptop, WSL2):
   - 2.1 round-trip 4/4 · 2.2 parts/joints: quadruped 9/12, hexapod 13/18, snake 8/14, biped 7/8

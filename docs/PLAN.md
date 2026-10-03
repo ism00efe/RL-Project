@@ -71,12 +71,19 @@ Exit: a running multi-biome ecosystem with several coexisting species.
 ### E7 — Intervention experiments
 Remove a species / change climate / add a threat → measure the ecosystem's response; compare against unperturbed runs.
 
+## Decisions (user, 2026-10-03)
+- Reproduction: asexual (mutated copy). Sexual reproduction maybe later.
+- Water: not now (keep it simple). Adding it later is feasible if biome physics stays a per-region parameter set
+  (water = region with buoyancy + drag forces applied by our code); keep that interface general.
+- Compute compromise: prefer diversity over numbers. If hardware is short, cut creature count first, then some biomes.
+- Plants: count as organisms (evolving if feasible; not evolving is acceptable). No sun-based plants: if everything could feed on
+  sunlight, sunless biomes would be needed.
+
 ## Open questions (decide with the user when the stage comes)
-- Plants: part of the environment (food that regrows) or evolving organisms themselves?
-- Reproduction: asexual first; sexual (crossover) later?
-- Water: different physics (buoyancy, drag); include or not?
-- Physics fidelity vs world size: if Q5 says no, which compromise (larger dt, fewer parts per creature, smaller world)?
-- Damage/health model (needed by E5).
+- Energy input to the world: without sun, where does food come from? (e.g. biome-defined regrowth of food / plant growth rate
+  as a climate parameter). Needed by E2.
+- Damage/health model (needed by E5); user has no preference yet.
+- Physics fidelity vs world size: exact compromise once E1 measures Q5.
 
 ## Setup
 Python 3.11+, `mujoco`, `mujoco-mjx`, `playground`, `jax[cuda12]`, `brax`; `evosax` for neuroevolution (new dependency, E1).
