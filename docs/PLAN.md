@@ -60,10 +60,14 @@ feasible at all; if E1.2 fails, stop and re-plan with the user before E1.5). All
 | E1.9 | Inheritance (Q2 exit): evolved parent brain on its mutated children vs a random brain on the same children | children keep ≥ 50% of parent's gain over random (one ratio) |
 | E1.10 | Q4: inherited-only (ES) vs ES + lifetime PPO fine-tuning (Baldwinian: learned weights not inherited), same wall-clock budget | two numbers (final measure each) + decision recorded |
 
-Open decision A (needed by E1.7): which signal ranks creatures in the E1 feasibility runs. Principle 1 forbids an external goal,
-so the recommended option is a proto-E2 arena: flat ground, scattered food pellets eaten on touch, energy = food − basal cost −
-muscle work, measure = energy at end of a fixed lifetime (no reproduction yet). Needs a food sense (touch + food direction) earlier
-than E2. Alternative: displacement (cheaper, but it is the speed goal the user rejected).
+Decision A (user, 2026-10-03): E1 test world = proto-E2 food arena: flat ground, scattered food pellets eaten on touch,
+energy = food − basal cost − muscle work, measure = energy at end of a fixed lifetime (no reproduction yet). Needs touch +
+food-direction senses already in E1. Correction: the user never ruled out goals in general; what was rejected is speed as an
+imposed goal. Exact wording of principle 1 to be confirmed with the user.
+Genome v2 extensibility: every template part carries an open `traits` dict (defaults when absent), so new per-part traits
+(eyes/vision sensor, scales = anisotropic friction, armor) are added later without breaking old genomes. Changing template
+capacity (L×S) later = recompile + convert populations (lossless only when growing).
+`evosax` 0.3.1 metadata: jax>=0.5, flax>=0.10 → compatible on paper with our pins (jax 0.9.2, flax 0.12.6); verify with `pip check` in E1.8.
 
 ### E2 — One biome, one lineage, a life cycle
 Adds: food, energy budget (basal cost ∝ mass + muscle work), death, asexual reproduction with mutation, senses (at least touch +
